@@ -1,0 +1,162 @@
+@page "/tasks/{Id:int}"
+@using TaskManager.Core.Entities
+@using TaskManager.Core.Interfaces.Services
+@using Microsoft.JSInterop
+@using TaskStatus = TaskManager.Core.Entities.TaskStatus
+@inject ITaskService TaskService
+@inject ITaskStatusService TaskStatusService
+@inject ITaskAssignmentService TaskAssignmentService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<h3>Task Details</h3>
+
+@if (task == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>@task.Title</h4>
+            <div>
+                <a href="/tasks/edit/@task.Id" class="btn btn-warning btn-sm">Edit</a>
+                <a href="/tasks" class="btn btn-secondary btn-sm">Back to List</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@task.Description</dd>
+
+                <dt class="col-sm-3">Project</dt>
+                <dd class="col-sm-9">
+                    <a href="/projects/@task.ProjectId">@task.Project?.Name</a>
+                </dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    <span class="badge" style="background-color: @task.Status?.ColorCode">
+                        @task.Status?.Name
+                    </span>
+                </dd>
+
+                <dt class="col-sm-3">Due Date</dt>
+                <dd class="col-sm-9">@task.DueDate.ToShortDateString()</dd>
+
+                <dt class="col-sm-3">Priority</dt>
+                <dd class="col-sm-9">@task.Priority</dd>
+
+                <dt class="col-sm-3">Created At</dt>
+                <dd class="col-sm-9">@task.CreatedAt.ToString("g")</dd>
+
+                <dt class="col-sm-3">Updated At</dt>
+                <dd class="col-sm-9">@task.UpdatedAt.ToString("g")</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Change Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <select class="form-select" @bind="selectedStatusId">
+                            @if (statuses != null)
+                            {
+                                @foreach (var status in statuses)
+                                {
+                                    <option value="@status.Id" selected="@(status.Id == task.StatusId)">@status.Name</option>
+                                }
+                            }
+                        </select>
+                        <button class="btn btn-primary" @onclick="UpdateTaskStatus">Update Status</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Assignments</h5>
+            <a href="/tasks/@task.Id/assign" class="btn btn-primary btn-sm">Assign User</a>
+        </div>
+        <div class="card-body">
+            @if (task.Assignments == null || !task.Assignments.Any())
+            {
+                <p>No users assigned to this task.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Assigned At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assignment in task.Assignments)
+                            {
+                                <tr>
+                                    <td>@assignment.User?.UserName</td>
+                                    <td>@assignment.AssignedAt.ToString("g")</td>
+                                    <td>
+                                        <button class="btn btn-danger btn-sm" @onclick="() => UnassignUser(assignment.UserId)">
+                                            Unassign
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private TaskItem task;
+    private IEnumerable<TaskStatus> statuses;
+    private int selectedStatusId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        task = await TaskService.GetTaskWithDetailsAsync(Id);
+        statuses = await TaskStatusService.GetAllStatusesAsync();
+        
+        if (task != null)
+        {
+            selectedStatusId = task.StatusId;
+        }
+    }
+
+    private async Task UpdateTaskStatus()
+    {
+        if (selectedStatusId != task.StatusId)
+        {
+            await TaskService.UpdateTaskStatusAsync(Id, selectedStatusId);
+            task = await TaskService.GetTaskWithDetailsAsync(Id);
+        }
+    }
+
+    private async Task UnassignUser(string userId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to unassign this user?"))
+        {
+            await TaskAssignmentService.UnassignTaskFromUserAsync(Id, userId);
+            task = await TaskService.GetTaskWithDetailsAsync(Id);
+        }
+    }
+}

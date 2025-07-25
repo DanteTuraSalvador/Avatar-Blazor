@@ -1,0 +1,286 @@
+@if (IsVisible)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-images"></i> Choose Avatar Image
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="@CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(activeTab == "predefined" ? "active" : "")"
+                                    @onclick="@(() => ChangeTab("predefined"))"
+                                    type="button">
+                                <i class="bi bi-collection"></i> Predefined Avatars
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(activeTab == "custom" ? "active" : "")"
+                                    @onclick="@(() => ChangeTab("custom"))"
+                                    type="button">
+                                <i class="bi bi-link-45deg"></i> Custom URL
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(activeTab == "generator" ? "active" : "")"
+                                    @onclick="@(() => ChangeTab("generator"))"
+                                    type="button">
+                                <i class="bi bi-magic"></i> Avatar Generator
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content mt-3">
+                        <!-- Predefined Avatars Tab -->
+                        @if (activeTab == "predefined")
+                        {
+                            <div class="row">
+                                @foreach (var avatar in predefinedAvatars)
+                                {
+                                    <div class="col-md-3 col-sm-4 col-6 mb-3">
+                                        <div class="card h-100 @(selectedImageUrl == avatar.Url ? "border-primary" : "")"
+                                             style="cursor: pointer;"
+                                             @onclick="@(() => ChooseImage(avatar.Url))">
+                                            <img src="@avatar.Url" 
+                                                 class="card-img-top" 
+                                                 style="height: 150px; object-fit: cover;" 
+                                                 alt="@avatar.Name" />
+                                            <div class="card-body p-2">
+                                                <p class="card-text small text-center mb-0">@avatar.Name</p>
+                                            </div>
+                                            @if (selectedImageUrl == avatar.Url)
+                                            {
+                                                <div class="position-absolute top-0 end-0 p-2">
+                                                    <i class="bi bi-check-circle-fill text-primary fs-4"></i>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Custom URL Tab -->
+                        @if (activeTab == "custom")
+                        {
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label">Image URL</label>
+                                        <input type="url" 
+                                               class="form-control" 
+                                               @bind="customImageUrl" 
+                                               @oninput="OnCustomUrlChange"
+                                               placeholder="https://example.com/image.jpg" />
+                                        <div class="form-text">Enter a direct link to an image (jpg, png, gif, webp)</div>
+                                    </div>
+                                    <button type="button" 
+                                            class="btn btn-outline-primary" 
+                                            @onclick="() => SelectImage(customImageUrl)"
+                                            disabled="@(string.IsNullOrWhiteSpace(customImageUrl))">
+                                        <i class="bi bi-check"></i> Use This Image
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    @if (!string.IsNullOrWhiteSpace(customImageUrl))
+                                    {
+                                        <div class="text-center">
+                                            <label class="form-label">Preview</label>
+                                            <div class="border rounded p-2">
+                                                <img src="@customImageUrl" 
+                                                     class="img-fluid rounded" 
+                                                     style="max-height: 200px; max-width: 100%;" 
+                                                     alt="Preview"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                                                <div style="display: none;" class="text-muted p-3">
+                                                    <i class="bi bi-exclamation-triangle"></i>
+                                                    <br />Invalid image URL
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Avatar Generator Tab -->
+                        @if (activeTab == "generator")
+                        {
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Avatar Style</label>
+                                        <select class="form-select" @bind="generatorStyle">
+                                            <option value="identicon">Identicon (Geometric)</option>
+                                            <option value="monsterid">Monster ID</option>
+                                            <option value="wavatar">Wavatar</option>
+                                            <option value="retro">Retro</option>
+                                            <option value="robohash">RoboHash</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Seed Text</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               @bind="generatorSeed" 
+                                               @oninput="UpdateGeneratedAvatar"
+                                               placeholder="Enter any text" />
+                                        <div class="form-text">Different text generates different avatars</div>
+                                    </div>
+                                    <button type="button" 
+                                            class="btn btn-outline-success" 
+                                            @onclick="GenerateRandomAvatar">
+                                        <i class="bi bi-arrow-clockwise"></i> Generate Random
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-center">
+                                        <label class="form-label">Generated Avatar</label>
+                                        <div class="border rounded p-3">
+                                            <img src="@generatedAvatarUrl" 
+                                                 class="img-fluid rounded" 
+                                                 style="max-height: 200px;" 
+                                                 alt="Generated Avatar" />
+                                        </div>
+                                        <button type="button" 
+                                                class="btn btn-primary mt-2" 
+                                                @onclick="() => SelectImage(generatedAvatarUrl)">
+                                            <i class="bi bi-check"></i> Use This Avatar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="@CloseDialog">
+                        <i class="bi bi-x"></i> Cancel
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(selectedImageUrl))
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="@ConfirmSelection">
+                            <i class="bi bi-check"></i> Use Selected Image
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string? CurrentImageUrl { get; set; }
+    [Parameter] public EventCallback<string> OnImageSelected { get; set; }
+    [Parameter] public EventCallback OnClosed { get; set; }
+
+    private string activeTab = "predefined";
+    private string selectedImageUrl = "";
+    private string customImageUrl = "";
+    private string generatorStyle = "identicon";
+    private string generatorSeed = "";
+    private string generatedAvatarUrl = "";
+
+    private List<PredefinedAvatar> predefinedAvatars = new()
+    {
+        new("Professional Male", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face"),
+        new("Professional Female", "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&h=300&fit=crop&crop=face"),
+        new("Casual Male", "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face"),
+        new("Casual Female", "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=300&fit=crop&crop=face"),
+        new("Business Male", "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&h=300&fit=crop&crop=face"),
+        new("Business Female", "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop&crop=face"),
+        new("Creative Male", "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop&crop=face"),
+        new("Creative Female", "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=300&fit=crop&crop=face"),
+        new("Placeholder Blue", "https://via.placeholder.com/300x300/4A90E2/FFFFFF?text=Avatar"),
+        new("Placeholder Green", "https://via.placeholder.com/300x300/7ED321/FFFFFF?text=Avatar"),
+        new("Placeholder Purple", "https://via.placeholder.com/300x300/9013FE/FFFFFF?text=Avatar"),
+        new("Placeholder Orange", "https://via.placeholder.com/300x300/F5A623/FFFFFF?text=Avatar")
+    };
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(CurrentImageUrl))
+        {
+            selectedImageUrl = CurrentImageUrl;
+        }
+
+        if (string.IsNullOrWhiteSpace(generatorSeed))
+        {
+            generatorSeed = Guid.NewGuid().ToString("N")[..8];
+            UpdateGeneratedAvatar();
+        }
+    }
+
+    private void ChangeTab(string tab)
+    {
+        activeTab = tab;
+        StateHasChanged();
+    }
+
+    private async Task ChooseImage(string imageUrl)
+    {
+        selectedImageUrl = imageUrl;
+        await OnImageSelected.InvokeAsync(imageUrl);
+        await CloseDialog();
+    }
+
+    private void SelectImage(string imageUrl)
+    {
+        selectedImageUrl = imageUrl;
+        StateHasChanged();
+    }
+
+    private void OnCustomUrlChange(ChangeEventArgs e)
+    {
+        customImageUrl = e.Value?.ToString() ?? "";
+    }
+
+    private void UpdateGeneratedAvatar()
+    {
+        if (!string.IsNullOrWhiteSpace(generatorSeed))
+        {
+            generatedAvatarUrl = generatorStyle switch
+            {
+                "robohash" => $"https://robohash.org/{generatorSeed}?size=300x300",
+                _ => $"https://www.gravatar.com/avatar/{GetMD5Hash(generatorSeed)}?s=300&d={generatorStyle}&r=pg"
+            };
+        }
+    }
+
+    private void GenerateRandomAvatar()
+    {
+        generatorSeed = Guid.NewGuid().ToString("N")[..8];
+        UpdateGeneratedAvatar();
+    }
+
+    private async Task ConfirmSelection()
+    {
+        if (!string.IsNullOrWhiteSpace(selectedImageUrl))
+        {
+            await OnImageSelected.InvokeAsync(selectedImageUrl);
+            await CloseDialog();
+        }
+    }
+
+    private async Task CloseDialog()
+    {
+        await OnClosed.InvokeAsync();
+    }
+
+    private string GetMD5Hash(string input)
+    {
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        var inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+        var hashBytes = md5.ComputeHash(inputBytes);
+        return Convert.ToHexString(hashBytes).ToLower();
+    }
+
+    private record PredefinedAvatar(string Name, string Url);
+}
