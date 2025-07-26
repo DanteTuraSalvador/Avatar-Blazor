@@ -1,0 +1,24 @@
+# Development overrides for Skills Manager
+version: '3.8'
+
+services:
+  skills-manager:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT=Information
+      - ASPNETCORE_LOGGING__LOGLEVEL__MICROSOFT.ASPNETCORE=Warning
+    volumes:
+      # Enable hot reload for development
+      - ./src:/app/src:ro
+    ports:
+      - "5093:8080"  # Map to development port
+    
+  sqlserver:
+    environment:
+      - MSSQL_COLLATION=SQL_Latin1_General_CP1_CI_AS
+    ports:
+      - "1433:1433"
+    
+  redis:
+    ports:
+      - "6379:6379"

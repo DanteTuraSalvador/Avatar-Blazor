@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Avatar.Infrastructure.Migrations
 {
-    [DbContext(typeof(AvatarDbContext))]
+    [DbContext(typeof(SkillsDbContext))]
     [Migration("20250725014745_InitialCreate")]
     partial class InitialCreate
     {

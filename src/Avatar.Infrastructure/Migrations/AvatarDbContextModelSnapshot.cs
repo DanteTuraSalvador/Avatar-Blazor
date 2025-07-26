@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Avatar.Infrastructure.Migrations
 {
-    [DbContext(typeof(AvatarDbContext))]
+    [DbContext(typeof(SkillsDbContext))]
     partial class AvatarDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

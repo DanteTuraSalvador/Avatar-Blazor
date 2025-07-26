@@ -7,10 +7,10 @@ namespace Avatar.Infrastructure.Repositories;
 
 public class Repository<T> : IRepository<T> where T : class
 {
-    protected readonly AvatarDbContext _context;
+    protected readonly SkillsDbContext _context;
     protected readonly DbSet<T> _dbSet;
 
-    public Repository(AvatarDbContext context)
+    public Repository(SkillsDbContext context)
     {
         _context = context;
         _dbSet = context.Set<T>();
@@ -45,7 +45,23 @@ public class Repository<T> : IRepository<T> where T : class
         return entity;
     }
 
-    public virtual async Task DeleteAsync(int id)
+    public virtual async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
+    {
+        return await _dbSet.FirstOrDefaultAsync(predicate);
+    }
+
+    public virtual async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
+    {
+        return await _dbSet.AnyAsync(predicate);
+    }
+
+    public virtual async Task DeleteAsync(T entity)
+    {
+        _dbSet.Remove(entity);
+        await _context.SaveChangesAsync();
+    }
+
+    public virtual async Task DeleteByIdAsync(int id)
     {
         var entity = await GetByIdAsync(id);
         if (entity != null)
@@ -53,11 +69,6 @@ public class Repository<T> : IRepository<T> where T : class
             _dbSet.Remove(entity);
             await _context.SaveChangesAsync();
         }
-    }
-
-    public virtual async Task<bool> ExistsAsync(int id)
-    {
-        return await _dbSet.FindAsync(id) != null;
     }
 
     public virtual async Task<int> CountAsync()

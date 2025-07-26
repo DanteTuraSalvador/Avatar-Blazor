@@ -1,36 +1,45 @@
 ﻿@page "/"
 
-<PageTitle>Avatar Manager - Home</PageTitle>
+<PageTitle>Home - Skills Manager</PageTitle>
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <h1 class="display-4 text-primary">Avatar Manager</h1>
-            <p class="lead">Welcome to the Avatar Management System</p>
+            <h1 class="display-4 text-primary">Skills Manager</h1>
+            <p class="lead">Comprehensive team skills management system</p>
         </div>
     </div>
 
     <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="bi bi-person-circle"></i> Manage Avatars
-                    </h5>
-                    <p class="card-text">View, create, edit, and delete avatar profiles.</p>
-                    <a href="/avatars" class="btn btn-primary">View Avatars</a>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-gear-fill display-1 text-primary"></i>
+                    <h5 class="card-title mt-3">Skills Management</h5>
+                    <p class="card-text">Create, edit, and manage organizational skills.</p>
+                    <a href="/skills" class="btn btn-primary">Manage Skills</a>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="bi bi-plus-square"></i> Create New Avatar
-                    </h5>
-                    <p class="card-text">Add a new avatar to the system.</p>
-                    <a href="/avatars/create" class="btn btn-success">Create Avatar</a>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-people-fill display-1 text-success"></i>
+                    <h5 class="card-title mt-3">Team Members</h5>
+                    <p class="card-text">Manage team member profiles and information.</p>
+                    <a href="/team-members" class="btn btn-success">Manage Team</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-diagram-3-fill display-1 text-info"></i>
+                    <h5 class="card-title mt-3">Skills Builder</h5>
+                    <p class="card-text">Assign skills to team members with proficiency levels.</p>
+                    <a href="/skills-builder" class="btn btn-info">Build Skills</a>
                 </div>
             </div>
         </div>
@@ -39,13 +48,13 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="alert alert-info">
-                <h6><i class="bi bi-info-circle"></i> Features</h6>
+                <h6><i class="bi bi-info-circle"></i> System Features</h6>
                 <ul class="mb-0">
-                    <li>Create and manage avatar profiles</li>
-                    <li>Categorize avatars by type</li>
-                <li>Search and filter functionality</li>
-                    <li>Responsive design with Bootstrap</li>
-                    <li>Modern UI with Telerik components</li>
+                    <li><strong>Skills CRUD:</strong> Complete skills lifecycle management</li>
+                    <li><strong>Team Member CRUD:</strong> Comprehensive team member profiles</li>
+                    <li><strong>Skills Assignment:</strong> Link skills to team members with levels</li>
+                    <li><strong>Business Rules:</strong> Unique constraints and validation</li>
+                    <li><strong>Professional UI:</strong> Built with Blazor, Telerik, and Bootstrap</li>
                 </ul>
             </div>
         </div>

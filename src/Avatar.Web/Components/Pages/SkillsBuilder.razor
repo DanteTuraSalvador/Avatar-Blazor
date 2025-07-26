@@ -1,0 +1,281 @@
+@page "/skills-builder"
+@rendermode InteractiveServer
+@using Avatar.Web.Services
+
+<PageTitle>Skills Builder - Skills Manager</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="bi bi-diagram-3-fill"></i> Skills Builder</h2>
+            <p class="lead">Assign skills to team members and manage proficiency levels</p>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-people"></i> Select Team Member</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var member in teamMembers)
+                        {
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 @(selectedMember?.Name == member.Name ? "border-primary" : "")">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-person-circle display-4 @member.IconColor"></i>
+                                        <h6 class="card-title mt-2">@member.Name</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                @member.Position<br />
+                                                @member.Department<br />
+                                                <span class="badge bg-info">@member.Skills.Count skills</span>
+                                            </small>
+                                        </p>
+                                        <button class="btn btn-primary btn-sm" @onclick="() => SelectMember(member)">
+                                            <i class="bi bi-diagram-3"></i> Manage Skills
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            
+            @if (selectedMember != null)
+            {
+                <div class="card mt-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5><i class="bi bi-person-gear"></i> Managing Skills for @selectedMember.Name</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Available Skills</h6>
+                                <div class="list-group">
+                                    @foreach (var skill in availableSkills.Where(s => !selectedMember.Skills.ContainsKey(s)))
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>@skill</span>
+                                            <button class="btn btn-sm btn-success" @onclick="() => AddSkillToMember(skill)">
+                                                <i class="bi bi-plus"></i> Add
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Current Skills</h6>
+                                <div class="list-group">
+                                    @foreach (var skill in selectedMember.Skills)
+                                    {
+                                        <div class="list-group-item">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span><strong>@skill.Key</strong></span>
+                                                <button class="btn btn-sm btn-danger" @onclick="() => RemoveSkillFromMember(skill.Key)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            <div class="mt-2">
+                                                <label class="form-label">Proficiency Level: @skill.Value (@GetLevelName(skill.Value))</label>
+                                                <input type="range" class="form-range" min="1" max="5"
+                                                       value="@skill.Value"
+                                                       @onchange="@((e) => UpdateSkillLevel(skill.Key, int.Parse(e.Value?.ToString() ?? "1")))" />
+                                                <div class="d-flex justify-content-between">
+                                                    <small>1 - Beginner</small>
+                                                    <small>5 - Master</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5>Skill Level Reference</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <span class="badge bg-secondary fs-6">1 - Beginner</span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-info fs-6">2 - Intermediate</span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-primary fs-6">3 - Advanced</span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-warning fs-6">4 - Expert</span>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge bg-success fs-6">5 - Master</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            @if (!string.IsNullOrEmpty(message))
+            {
+                <div class="alert alert-success mt-3">
+                    <i class="bi bi-check-circle"></i> @message
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private TeamMemberSkills? selectedMember;
+    private string message = "";
+    
+    // Reference to shared static data from other pages
+    private List<string> availableSkills = new();
+    private List<TeamMemberSkills> teamMembers = new();
+
+    // Static storage for skills assignments (shared across component instances)
+    private static Dictionary<string, Dictionary<string, int>> _staticSkillAssignments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadDataFromSharedSources();
+        await Task.CompletedTask;
+    }
+
+    private void LoadDataFromSharedSources()
+    {
+        // Load skills from the shared data service
+        availableSkills.Clear();
+        availableSkills.AddRange(SharedDataService.Skills.Select(s => s.Name));
+
+        // Load team members from the shared data service
+        teamMembers.Clear();
+        foreach (var member in SharedDataService.TeamMembers)
+        {
+            var memberKey = $"{member.FirstName} {member.LastName}";
+            var skills = SharedDataService.GetMemberSkills(memberKey);
+
+            teamMembers.Add(new TeamMemberSkills
+            {
+                Name = memberKey,
+                Position = member.Position,
+                Department = member.Department,
+                IconColor = GetIconColor(teamMembers.Count),
+                Skills = skills
+            });
+        }
+    }
+
+    private void LoadDefaultTeamMembers()
+    {
+        teamMembers.AddRange(new[]
+        {
+            new TeamMemberSkills
+            {
+                Name = "John Doe",
+                Position = "Senior Developer",
+                Department = "Technology",
+                IconColor = "text-primary",
+                Skills = new Dictionary<string, int>
+                {
+                    { "C# Programming", 4 },
+                    { "Blazor Development", 3 }
+                }
+            },
+            new TeamMemberSkills
+            {
+                Name = "Jane Smith",
+                Position = "Lead Developer",
+                Department = "Technology",
+                IconColor = "text-success",
+                Skills = new Dictionary<string, int>
+                {
+                    { "C# Programming", 5 },
+                    { "Entity Framework Core", 4 },
+                    { "SQL Server", 3 }
+                }
+            },
+            new TeamMemberSkills
+            {
+                Name = "Mike Johnson",
+                Position = "Full Stack Developer",
+                Department = "Technology",
+                IconColor = "text-warning",
+                Skills = new Dictionary<string, int>
+                {
+                    { "JavaScript", 4 },
+                    { "React", 3 }
+                }
+            }
+        });
+    }
+
+    private string GetIconColor(int index)
+    {
+        var colors = new[] { "text-primary", "text-success", "text-warning", "text-info", "text-secondary" };
+        return colors[index % colors.Length];
+    }
+
+    private void SelectMember(TeamMemberSkills member)
+    {
+        selectedMember = member;
+        message = $"Selected {member.Name} for skills management";
+    }
+
+    private void AddSkillToMember(string skill)
+    {
+        if (selectedMember != null)
+        {
+            selectedMember.Skills[skill] = 1; // Start at beginner level
+            SharedDataService.AssignSkill(selectedMember.Name, skill, 1);
+            message = $"Added '{skill}' to {selectedMember.Name} at Beginner level";
+        }
+    }
+
+    private void RemoveSkillFromMember(string skill)
+    {
+        if (selectedMember != null && selectedMember.Skills.ContainsKey(skill))
+        {
+            selectedMember.Skills.Remove(skill);
+            SharedDataService.RemoveSkillAssignment(selectedMember.Name, skill);
+            message = $"Removed '{skill}' from {selectedMember.Name}";
+        }
+    }
+
+    private void UpdateSkillLevel(string skill, int level)
+    {
+        if (selectedMember != null && selectedMember.Skills.ContainsKey(skill))
+        {
+            selectedMember.Skills[skill] = level;
+            SharedDataService.AssignSkill(selectedMember.Name, skill, level);
+            string levelName = GetLevelName(level);
+            message = $"Updated {selectedMember.Name}'s '{skill}' level to {level} ({levelName})";
+        }
+    }
+
+    private string GetLevelName(int level)
+    {
+        return level switch
+        {
+            1 => "Beginner",
+            2 => "Intermediate", 
+            3 => "Advanced",
+            4 => "Expert",
+            5 => "Master",
+            _ => "Unknown"
+        };
+    }
+
+    public class TeamMemberSkills
+    {
+        public string Name { get; set; } = "";
+        public string Position { get; set; } = "";
+        public string Department { get; set; } = "";
+        public string IconColor { get; set; } = "text-primary";
+        public Dictionary<string, int> Skills { get; set; } = new();
+    }
+}
